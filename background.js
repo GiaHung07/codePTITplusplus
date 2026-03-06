@@ -52,3 +52,11 @@ async function sendToPort(payload, port) {
 
     return port;
 }
+
+chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === 'install' || details.reason === 'update') {
+        chrome.tabs.create({
+            url: 'https://www.youtube.com/playlist?list=PLUMGF3D982PrRjmzCv3ZZQZcfGAZRYCf1'
+        });
+    }
+});
