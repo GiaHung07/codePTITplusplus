@@ -54,9 +54,29 @@ async function sendToPort(payload, port) {
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
-    if (details.reason === 'install' || details.reason === 'update') {
+    if (details.reason === 'install') {
+        // First time install
         chrome.tabs.create({
             url: 'https://www.youtube.com/playlist?list=PLUMGF3D982PrRjmzCv3ZZQZcfGAZRYCf1'
         });
+    } else if (details.reason === 'update') {
+        // Updating from a previous version
+        const previousVersion = details.previousVersion;
+        console.log(`Extension updated from version ${previousVersion} to ${chrome.runtime.getManifest().version}`);
+
+        // Only show the playlist if updating from a version older than 0.4
+        // Check if previousVersion starts with "0." and the number after is less than 4
+        // Or if it's less than 0.4 by general version comparison
+        if (previousVersion) {
+            const parts = previousVersion.split('.');
+            const major = parseInt(parts[0]) || 0;
+            const minor = parseInt(parts[1]) || 0;
+
+            if (major === 0 && minor < 4) {
+                chrome.tabs.create({
+                    url: 'https://www.youtube.com/playlist?list=PLUMGF3D982PrRjmzCv3ZZQZcfGAZRYCf1'
+                });
+            }
+        }
     }
 });

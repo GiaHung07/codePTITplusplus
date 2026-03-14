@@ -393,6 +393,14 @@
             const filename = generateFilename(id, title);
             const file = new File([blob], `${filename}${ext}`, { type: 'text/plain' });
 
+            if (isBetaSite()) {
+                const removeBtns = document.querySelectorAll('.ant-upload-list-item-actions button[title="Remove file"], .ant-upload-list-item .anticon-delete');
+                removeBtns.forEach(btn => {
+                    const el = btn.closest('button') || btn;
+                    if (el) el.click();
+                });
+            }
+
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
             fileInput.files = dataTransfer.files;
@@ -830,6 +838,14 @@
             const title = getCleanTitle(getTitleElement(), id);
             const filename = generateFilename(id, title);
             const file = new File([blob], `${filename}${ext}`, { type: 'text/plain' });
+
+            if (isBetaSite()) {
+                const removeBtns = document.querySelectorAll('.ant-upload-list-item-actions button[title="Remove file"], .ant-upload-list-item .anticon-delete');
+                removeBtns.forEach(btn => {
+                    const el = btn.closest('button') || btn;
+                    if (el) el.click();
+                });
+            }
 
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
