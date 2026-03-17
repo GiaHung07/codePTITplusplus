@@ -2210,7 +2210,6 @@
 
     // Hide solved problems toggle (original site - direct load)
     initHideSolvedToggle();
-    saveProblemListSequence();
 
     // Streak badge on homepage
     initStreakBadge();
