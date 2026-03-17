@@ -377,84 +377,84 @@
 
     // --- END OF CODE EDITOR ---
 
-// --- PROBLEM STATUS ICONS ---
+    // --- PROBLEM STATUS ICONS ---
 
-function getProblemStatus() {
-    let status = 'NONE';
-    
-    if (isBetaSite()) {
-        const historyContainer = document.querySelector('.card-content');
-        if (historyContainer && historyContainer.textContent.includes('Lịch sử nộp bài:')) {
-            const historyElements = historyContainer.querySelectorAll('div > div > a > span');
-            if (historyElements.length > 0) {
-                status = 'FAIL'; // Default to FAIL if there's history
-                for (let el of historyElements) {
-                    if (el.textContent.trim() === 'AC') {
-                        status = 'AC';
-                        break;
+    function getProblemStatus() {
+        let status = 'NONE';
+
+        if (isBetaSite()) {
+            const historyContainer = document.querySelector('.card-content');
+            if (historyContainer && historyContainer.textContent.includes('Lịch sử nộp bài:')) {
+                const historyElements = historyContainer.querySelectorAll('div > div > a > span');
+                if (historyElements.length > 0) {
+                    status = 'FAIL'; // Default to FAIL if there's history
+                    for (let el of historyElements) {
+                        if (el.textContent.trim() === 'AC') {
+                            status = 'AC';
+                            break;
+                        }
                     }
                 }
             }
-        }
-    } else {
-        // Original site typically has a table of submissions further down the page
-        const tables = document.querySelectorAll('table');
-        let historyTable = null;
-        for (let table of tables) {
-            if (table.textContent.includes('Lịch sử nộp bài') || table.textContent.includes('Kết quả nộp bài cũ')) {
-                historyTable = table;
-                break;
-            } else if (table.querySelector('th') && table.querySelector('th').textContent.includes('Trạng thái')) {
-                 // Sometime original tables might just have typical columns like Submit ID, Date, Name, Status, Runtime, Memory, Language
-                 historyTable = table;
-                 break; // Best effort guess it's the history table if it contains a status column
+        } else {
+            // Original site typically has a table of submissions further down the page
+            const tables = document.querySelectorAll('table');
+            let historyTable = null;
+            for (let table of tables) {
+                if (table.textContent.includes('Lịch sử nộp bài') || table.textContent.includes('Kết quả nộp bài cũ')) {
+                    historyTable = table;
+                    break;
+                } else if (table.querySelector('th') && table.querySelector('th').textContent.includes('Trạng thái')) {
+                    // Sometime original tables might just have typical columns like Submit ID, Date, Name, Status, Runtime, Memory, Language
+                    historyTable = table;
+                    break; // Best effort guess it's the history table if it contains a status column
+                }
+            }
+
+            // Alternative explicit check on original site since the problem page itself might have them rendered directly in the standard problem tables
+            const trs = document.querySelectorAll('.table-responsive tbody tr');
+            if (trs.length > 0) {
+                let hasHistory = false;
+                for (let tr of trs) {
+                    const statusCell = tr.querySelector('td.text-center a span, td[id^="status_"] span, td span[style*="color"]');
+                    if (statusCell) {
+                        hasHistory = true;
+                        if (statusCell.textContent.trim() === 'AC') {
+                            status = 'AC';
+                            break;
+                        }
+                    }
+                }
+                if (hasHistory && status === 'NONE') {
+                    status = 'FAIL';
+                }
             }
         }
 
-        // Alternative explicit check on original site since the problem page itself might have them rendered directly in the standard problem tables
-        const trs = document.querySelectorAll('.table-responsive tbody tr');
-        if (trs.length > 0) {
-             let hasHistory = false;
-             for (let tr of trs) {
-                 const statusCell = tr.querySelector('td.text-center a span, td[id^="status_"] span, td span[style*="color"]');
-                 if (statusCell) {
-                     hasHistory = true;
-                     if (statusCell.textContent.trim() === 'AC') {
-                         status = 'AC';
-                         break;
-                     }
-                 }
-             }
-             if (hasHistory && status === 'NONE') {
-                 status = 'FAIL';
-             }
+        return status;
+    }
+
+    function injectStatusIcon() {
+        const titleElem = getTitleElement();
+        if (!titleElem || titleElem.querySelector('.problem-status-icon')) return;
+
+        const status = getProblemStatus();
+
+        if (status !== 'NONE') {
+            const icon = document.createElement('i');
+            icon.className = status === 'AC' ? 'fa fa-check-circle problem-status-icon' : 'fa fa-frown-o problem-status-icon';
+            icon.style.marginRight = '8px';
+            icon.style.color = status === 'AC' ? '#19be6b' : '#ed4014'; // Match origin/beta exact green and red colors
+            icon.style.fontSize = '24px'; // Match the size of the SVGs
+            icon.style.verticalAlign = 'middle';
+            icon.style.display = 'inline-flex';
+            icon.style.alignItems = 'center';
+
+            titleElem.prepend(icon);
         }
     }
-    
-    return status;
-}
 
-function injectStatusIcon() {
-    const titleElem = getTitleElement();
-    if (!titleElem || titleElem.querySelector('.problem-status-icon')) return;
-
-    const status = getProblemStatus();
-
-    if (status !== 'NONE') {
-        const icon = document.createElement('i');
-        icon.className = status === 'AC' ? 'fa fa-check-circle problem-status-icon' : 'fa fa-frown-o problem-status-icon';
-        icon.style.marginRight = '8px';
-        icon.style.color = status === 'AC' ? '#19be6b' : '#ed4014'; // Match origin/beta exact green and red colors
-        icon.style.fontSize = '24px'; // Match the size of the SVGs
-        icon.style.verticalAlign = 'middle';
-        icon.style.display = 'inline-flex';
-        icon.style.alignItems = 'center';
-        
-        titleElem.prepend(icon);
-    }
-}
-
-// --- VIEW AS PDF FEATURE ---
+    // --- VIEW AS PDF FEATURE ---
     // --- Core Logic ---
 
     async function handlePasteAndSubmit(fileInput, submitAction, getCompilerText) {
@@ -673,7 +673,7 @@ function injectStatusIcon() {
         let rawTitle = getCleanTitle(titleElem, id);
         // Sometimes rawTitle might include the ID if the parsing isn't perfect, let's clean it just in case
         if (id && rawTitle.startsWith(id)) {
-             rawTitle = rawTitle.substring(id.length).replace(/^[\s\-\:]+/, '');
+            rawTitle = rawTitle.substring(id.length).replace(/^[\s\-\:]+/, '');
         }
 
         const { timeLimit, memoryLimitMb } = getLimits();
@@ -850,7 +850,7 @@ function injectStatusIcon() {
         copyBtn.type = 'button';
         copyBtn.className = 'title-action-btn copy-title-btn';
         copyBtn.innerHTML = '<i class="fa fa-clone"></i>';
-        copyBtn.title = 'Copy tên file (Ctrl+Shift+C)';
+        copyBtn.title = 'Copy tên file ($mod+Shift+C)';
         copyBtn.style.marginLeft = '12px';
 
         copyBtn.onclick = async (e) => {
@@ -877,8 +877,8 @@ function injectStatusIcon() {
             sendBtn.type = 'button';
             sendBtn.className = 'title-action-btn send-ide-btn';
             sendBtn.innerHTML = '<i class="fa fa-paper-plane"></i>';
-            sendBtn.title = 'Gửi đề bài (Ctrl+Shift+X)';
-        
+            sendBtn.title = 'Gửi đề bài ($mod+Shift+X)';
+
             sendBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -894,7 +894,7 @@ function injectStatusIcon() {
             pdfBtn.className = 'title-action-btn view-pdf-btn';
             pdfBtn.innerHTML = '<i class="fa fa-file-pdf-o"></i>';
             pdfBtn.title = 'Xem dưới dạng PDF';
-        
+
             pdfBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1286,23 +1286,23 @@ function injectStatusIcon() {
                 // We saw it in `<p class="nav__profile__menu__code">B25DCCN523</p>` or in the text.
                 const match = html.match(/>([A-Z0-9_]{8,12})</);
                 if (match) {
-                     return match[1];
+                    return match[1];
                 }
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 const pElems = doc.querySelectorAll('p');
                 for (let p of pElems) {
-                     if (p.className.includes('code') || String(p.textContent).match(/^[A-Z0-9]+$/)) {
-                         const matchCode = p.textContent.trim().match(/^([A-Z0-9_]{8,12})$/);
-                         if(matchCode) return matchCode[1];
-                     }
+                    if (p.className.includes('code') || String(p.textContent).match(/^[A-Z0-9]+$/)) {
+                        const matchCode = p.textContent.trim().match(/^([A-Z0-9_]{8,12})$/);
+                        if (matchCode) return matchCode[1];
+                    }
                 }
                 // Try to find the B25DCCN523 inside spans
                 const spans = doc.querySelectorAll('span');
                 for (let span of spans) {
-                     const t = span.textContent.trim();
-                     if (t.match(/^[B|N][0-9]{2}[A-Z]+[0-9]{3}$/i)) { // standard ptit username regex
-                          return t;
-                     }
+                    const t = span.textContent.trim();
+                    if (t.match(/^[B|N][0-9]{2}[A-Z]+[0-9]{3}$/i)) { // standard ptit username regex
+                        return t;
+                    }
                 }
             } catch (e) {
                 console.error('[cPTIT++] Error fetching username from', url, e);
@@ -1311,18 +1311,18 @@ function injectStatusIcon() {
         // Fallback for beta site - check local storage or DOM
         const betaProfile = document.querySelector('.ant-dropdown-link img');
         if (betaProfile && betaProfile.src.includes('?name=')) {
-             // Beta doesn't cleanly expose username, but maybe we can just get it globally if the user is in beta
-             try {
+            // Beta doesn't cleanly expose username, but maybe we can just get it globally if the user is in beta
+            try {
                 const token = localStorage.getItem('access_token');
                 const headers = { 'Accept': 'application/json, text/plain, */*' };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
-                
+
                 const req = await fetch('/api/user/info', { headers });
                 if (req.ok) {
-                   const json = await req.json();
-                   if (json && json.data && json.data.username) return json.data.username;
+                    const json = await req.json();
+                    if (json && json.data && json.data.username) return json.data.username;
                 }
-             } catch(e){}
+            } catch (e) { }
         }
 
         // Just ask the user to navigate back if we can't find it
@@ -1335,11 +1335,11 @@ function injectStatusIcon() {
             const token = localStorage.getItem('access_token');
             const headers = { 'Accept': 'application/json, text/plain, */*' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
-            
+
             const firstPageRes = await fetch(`/api/solutions?username=${username}&page=1`, { headers });
             if (!firstPageRes.ok) return [];
             const firstPageData = await firstPageRes.json();
-            
+
             let allData = firstPageData.data || [];
             const lastPage = firstPageData.last_page || 1;
 
@@ -1354,13 +1354,13 @@ function injectStatusIcon() {
                 }
                 const subsequentPages = await Promise.all(promises);
                 for (const page of subsequentPages) {
-                     if (page && page.data) {
-                         allData = allData.concat(page.data);
-                     }
+                    if (page && page.data) {
+                        allData = allData.concat(page.data);
+                    }
                 }
             }
             return allData;
-        } catch(e) {
+        } catch (e) {
             console.error('[cPTIT++] Error fetching all submissions:', e);
             return [];
         }
@@ -1380,22 +1380,190 @@ function injectStatusIcon() {
         return heatmapData;
     }
 
-    function renderHeatmap(submissionsData) {
-        // Prevent multiple injections
-        if (document.getElementById('cptit-heatmap-container')) return;
-
-        const MONTHS_VI = ['Th1','Th2','Th3','Th4','Th5','Th6','Th7','Th8','Th9','Th10','Th11','Th12'];
-        const DAYS_VI = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    function injectHeatmapContainer() {
+        if (document.getElementById('cptit-heatmap-container')) {
+            return document.getElementById('cptit-heatmap-container');
+        }
 
         const container = document.createElement('div');
         container.id = 'cptit-heatmap-container';
         container.className = 'cptit-heatmap-wrapper';
 
-        // --- Header with title and total count ---
+        // Inject into the page
+        const isBeta = window.location.href.includes('/beta');
+        if (isBeta) {
+            waitForElement('.body .part-left .body-header', (header) => {
+                // Insert before the problem-container (table area) so it appears above the table
+                const problemContainer = header.querySelector('.problem-container');
+                if (problemContainer) {
+                    header.insertBefore(container, problemContainer);
+                } else {
+                    // Fallback: insert after the underline div, before table
+                    const underline = header.querySelector('.underline');
+                    if (underline && underline.nextSibling) {
+                        header.insertBefore(container, underline.nextSibling);
+                    } else {
+                        header.appendChild(container);
+                    }
+                }
+            });
+        } else {
+            waitForElement('.historywork', (historyWork) => {
+                historyWork.insertBefore(container, historyWork.firstChild);
+            });
+            // Fallback for full page wrapper if .historywork isn't specific
+            waitForElement('.wrapper > .wrapper', (wrapper) => {
+                if (!document.getElementById('cptit-heatmap-container')) {
+                    wrapper.insertBefore(container, wrapper.firstChild);
+                }
+            }, 5000);
+        }
+        return container;
+    }
+
+    // --- Streak Calculation (shared by heatmap and homepage badge) ---
+
+    function calcStreak(data) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        let streak = 0;
+        let checkDate = new Date(today);
+
+        // If today has no submissions, check if yesterday does (allow 1-day grace)
+        if (!data[fmt(checkDate)]) {
+            checkDate.setDate(checkDate.getDate() - 1);
+            if (!data[fmt(checkDate)]) return 0;
+        }
+
+        // Count consecutive days backwards
+        while (data[fmt(checkDate)] && data[fmt(checkDate)] > 0) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+        }
+        return streak;
+    }
+
+    // --- Homepage Streak Badge ---
+
+    async function initStreakBadge() {
+        // Only on problem list pages
+        const isOldHome = window.location.href.includes('/student/question') && !window.location.href.includes('/student/question/');
+        const isBetaHome = isProblemListPage();
+        if (!isOldHome && !isBetaHome) return;
+
+        // Prevent double injection depending on the site structure
+        if (isOldHome && document.getElementById('cptit-homepage-streak')) return;
+        if (isBetaHome) {
+            if (document.getElementById('cptit-homepage-streak')) return;
+        }
+
+        // Fetch username
+        let username = null;
+        const ptitCodeMatch = document.body.innerHTML.match(/Tài khoản[^<]*<span[^>]*>(B[0-9]{2}[A-Z]+[0-9]{3})<\/span>/i) ||
+            document.body.innerHTML.match(/(B[0-9]{2}[A-Z]+[0-9]{3})/i);
+        if (ptitCodeMatch) {
+            username = ptitCodeMatch[1];
+        } else {
+            username = await fetchUsername();
+        }
+        if (!username) return;
+
+        // Fetch submissions and calculate streak
+        const subs = await fetchAllSubmissions(username);
+        const processed = processSubmissions(subs);
+        const streak = calcStreak(processed);
+
+        // Build badge
+        const badge = document.createElement('div');
+        badge.id = 'cptit-homepage-streak';
+        badge.className = 'cptit-homepage-streak';
+
+        if (streak > 0) {
+            badge.innerHTML = `<span class="cptit-streak-badge active-streak">🔥 <span class="streak-text">${streak} ngày liên tiếp</span></span>`;
+        } else {
+            badge.innerHTML = `<span class="cptit-streak-badge cptit-streak-zero"><span class="streak-text">Hãy bắt đầu streak hôm nay! 💪</span></span>`;
+        }
+
+        // Inject into page
+        if (isOldHome) {
+            const topNav = document.querySelector('.ques__nav__top');
+            if (topNav) {
+                // Ensure topNav is a flex container
+                topNav.style.display = 'flex';
+                topNav.style.alignItems = 'center';
+                topNav.style.justifyContent = 'space-between';
+                topNav.style.flexWrap = 'wrap';
+                topNav.style.gap = '10px';
+
+                const title = topNav.querySelector('.ques__nav__title');
+                if (title) {
+                    // Group title and badge together on the left
+                    const titleWrapper = document.createElement('div');
+                    titleWrapper.style.display = 'flex';
+                    titleWrapper.style.alignItems = 'center';
+                    titleWrapper.style.gap = '12px';
+                    
+                    topNav.insertBefore(titleWrapper, title);
+                    titleWrapper.appendChild(title);
+                    titleWrapper.appendChild(badge);
+                } else {
+                    topNav.appendChild(badge);
+                }
+            }
+        } else {
+            // Beta: wrap the h2 and the badge in a flex container so they side-by-side on the left
+            const header = document.querySelector('.body-header h2');
+            if (header && !header.parentElement.classList.contains('cptit-header-wrapper')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'cptit-header-wrapper';
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.justifyContent = 'flex-start';
+                wrapper.style.gap = '12px';
+                
+                header.parentNode.insertBefore(wrapper, header);
+                header.style.marginBottom = '0'; // reset margin since we use wrapper
+                
+                wrapper.appendChild(header);
+                wrapper.appendChild(badge);
+            } else if (header && header.parentElement.classList.contains('cptit-header-wrapper')) {
+                // If wrapper already exists, just append/replace badge
+                const existingBadge = document.getElementById('cptit-homepage-streak');
+                if (!existingBadge) {
+                     header.parentElement.appendChild(badge);
+                }
+            }
+        }
+    }
+
+    function renderHeatmap(submissionsData, container) {
+        if (!container) return;
+        container.innerHTML = ''; // Clear loading state
+
+        const MONTHS_VI = ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'];
+        const DAYS_VI = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+        // --- Calculate streak (uses shared function) ---
+        const currentStreak = calcStreak(submissionsData);
+
+        // --- Header with title, total count, and streak ---
         const totalSubmissions = Object.values(submissionsData).reduce((a, b) => a + b, 0);
         const headerDiv = document.createElement('div');
         headerDiv.className = 'cptit-heatmap-header';
-        headerDiv.innerHTML = `<span class="cptit-heatmap-title">${totalSubmissions} submissions trong năm qua</span>`;
+
+        let streakHTML = '';
+        if (currentStreak > 0) {
+            streakHTML = `<span class="cptit-streak-badge active-streak">🔥 <span class="streak-text">${currentStreak} ngày liên tiếp</span></span>`;
+        } else {
+            streakHTML = `<span class="cptit-streak-badge cptit-streak-zero"><span class="streak-text">Hãy bắt đầu streak hôm nay! 💪</span></span>`;
+        }
+
+        headerDiv.innerHTML = `
+            <span class="cptit-heatmap-title">${totalSubmissions} submissions trong năm qua</span>
+            ${streakHTML}
+        `;
         container.appendChild(headerDiv);
 
         // --- Graph area (day labels + month labels + grid) ---
@@ -1405,15 +1573,15 @@ function injectStatusIcon() {
         // Calculate date range: end on today, go back ~1 year
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         // End of graph is the Saturday of today's week (or today if today is Saturday)
         const endDay = new Date(today);
         endDay.setDate(endDay.getDate() + (6 - endDay.getDay()));
-        
+
         // Start exactly 52 weeks before the Sunday of this week
         const startDay = new Date(endDay);
         startDay.setDate(startDay.getDate() - (52 * 7) - 6); // Go back 52 full weeks + remaining days to Sunday
-        
+
         // Calculate total weeks
         const totalDays = Math.ceil((endDay - startDay) / (1000 * 60 * 60 * 24)) + 1;
         const totalWeeks = Math.ceil(totalDays / 7);
@@ -1486,44 +1654,44 @@ function injectStatusIcon() {
             weekColumn.className = 'cptit-heatmap-week';
 
             for (let day = 0; day < 7; day++) {
-                 const d = new Date(currentDate);
-                 const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                 
-                 const cell = document.createElement('div');
-                 cell.className = 'cptit-heatmap-cell';
-                 
-                 if (d > today) {
-                     cell.classList.add('cptit-heatmap-cell-empty');
-                 } else {
-                     const count = submissionsData[dateString] || 0;
-                     cell.dataset.date = dateString;
-                     cell.dataset.count = count;
-                     
-                     if (count === 0) cell.classList.add('color-scale-0');
-                     else if (count <= 2) cell.classList.add('color-scale-1');
-                     else if (count <= 5) cell.classList.add('color-scale-2');
-                     else if (count <= 10) cell.classList.add('color-scale-3');
-                     else cell.classList.add('color-scale-4');
+                const d = new Date(currentDate);
+                const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-                     // Custom tooltip on hover
-                     cell.addEventListener('mouseenter', (e) => {
-                         const c = parseInt(e.target.dataset.count || 0);
-                         const dateParts = e.target.dataset.date.split('-');
-                         const displayDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                         tooltip.innerHTML = `<strong>${c} submission${c !== 1 ? 's' : ''}</strong> ngày ${displayDate}`;
-                         tooltip.style.display = 'block';
-                         const rect = e.target.getBoundingClientRect();
-                         const containerRect = container.getBoundingClientRect();
-                         tooltip.style.left = (rect.left - containerRect.left + rect.width / 2) + 'px';
-                         tooltip.style.top = (rect.top - containerRect.top - 36) + 'px';
-                     });
-                     cell.addEventListener('mouseleave', () => {
-                         tooltip.style.display = 'none';
-                     });
-                 }
+                const cell = document.createElement('div');
+                cell.className = 'cptit-heatmap-cell';
 
-                 weekColumn.appendChild(cell);
-                 currentDate.setDate(currentDate.getDate() + 1);
+                if (d > today) {
+                    cell.classList.add('cptit-heatmap-cell-empty');
+                } else {
+                    const count = submissionsData[dateString] || 0;
+                    cell.dataset.date = dateString;
+                    cell.dataset.count = count;
+
+                    if (count === 0) cell.classList.add('color-scale-0');
+                    else if (count <= 2) cell.classList.add('color-scale-1');
+                    else if (count <= 5) cell.classList.add('color-scale-2');
+                    else if (count <= 10) cell.classList.add('color-scale-3');
+                    else cell.classList.add('color-scale-4');
+
+                    // Custom tooltip on hover
+                    cell.addEventListener('mouseenter', (e) => {
+                        const c = parseInt(e.target.dataset.count || 0);
+                        const dateParts = e.target.dataset.date.split('-');
+                        const displayDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                        tooltip.innerHTML = `<strong>${c} submission${c !== 1 ? 's' : ''}</strong> ngày ${displayDate}`;
+                        tooltip.style.display = 'block';
+                        const rect = e.target.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        tooltip.style.left = (rect.left - containerRect.left + rect.width / 2) + 'px';
+                        tooltip.style.top = (rect.top - containerRect.top - 36) + 'px';
+                    });
+                    cell.addEventListener('mouseleave', () => {
+                        tooltip.style.display = 'none';
+                    });
+                }
+
+                weekColumn.appendChild(cell);
+                currentDate.setDate(currentDate.getDate() + 1);
             }
             grid.appendChild(weekColumn);
         }
@@ -1546,57 +1714,40 @@ function injectStatusIcon() {
         `;
         container.appendChild(footer);
 
-        // Inject into the page
-        const isBeta = window.location.href.includes('/beta');
-        if (isBeta) {
-            waitForElement('.body .part-left .body-header', (header) => {
-                // Insert before the problem-container (table area) so it appears above the table
-                const problemContainer = header.querySelector('.problem-container');
-                if (problemContainer) {
-                     header.insertBefore(container, problemContainer);
-                } else {
-                     // Fallback: insert after the underline div, before table
-                     const underline = header.querySelector('.underline');
-                     if (underline && underline.nextSibling) {
-                         header.insertBefore(container, underline.nextSibling);
-                     } else {
-                         header.appendChild(container);
-                     }
-                }
-            });
-        } else {
-            waitForElement('.historywork', (historyWork) => {
-                historyWork.insertBefore(container, historyWork.firstChild);
-            });
-            // Fallback for full page wrapper if .historywork isn't specific
-            waitForElement('.wrapper > .wrapper', (wrapper) => {
-                 if (!document.getElementById('cptit-heatmap-container')) {
-                     wrapper.insertBefore(container, wrapper.firstChild);
-                 }
-            }, 5000);
-        }
+        // Injection is now handled by injectHeatmapContainer
     }
 
     async function initHeatmap() {
         console.log('[cPTIT++] Initializing Heatmap...');
+
+        const container = injectHeatmapContainer();
+        // Show loading state
+        container.innerHTML = `
+            <div class="cptit-heatmap-loading">
+                <div class="cptit-spinner"></div>
+                <span>Đang tải dữ liệu History... (Quá trình này có thể mất vài giây)</span>
+            </div>
+        `;
+
         // Try getting username from DOM first if we are on old site
         let username = null;
-        
-        const ptitCodeMatch = document.body.innerHTML.match(/Tài khoản[^<]*<span[^>]*>(B[0-9]{2}[A-Z]+[0-9]{3})<\/span>/i) || 
-                              document.body.innerHTML.match(/(B[0-9]{2}[A-Z]+[0-9]{3})/i);
+
+        const ptitCodeMatch = document.body.innerHTML.match(/Tài khoản[^<]*<span[^>]*>(B[0-9]{2}[A-Z]+[0-9]{3})<\/span>/i) ||
+            document.body.innerHTML.match(/(B[0-9]{2}[A-Z]+[0-9]{3})/i);
         if (ptitCodeMatch) {
-             username = ptitCodeMatch[1];
+            username = ptitCodeMatch[1];
         } else {
-             username = await fetchUsername();
+            username = await fetchUsername();
         }
 
         if (username) {
-             console.log('[cPTIT++] Found username:', username);
-             const subs = await fetchAllSubmissions(username);
-             const processed = processSubmissions(subs);
-             renderHeatmap(processed);
+            console.log('[cPTIT++] Found username:', username);
+            const subs = await fetchAllSubmissions(username);
+            const processed = processSubmissions(subs);
+            renderHeatmap(processed, container);
         } else {
-             console.warn('[cPTIT++] Username not found, cannot render heatmap.');
+            console.warn('[cPTIT++] Username not found, cannot render heatmap.');
+            container.innerHTML = `<div class="cptit-heatmap-loading" style="color: #a7453c">Không tìm thấy mã sinh viên để tải Heatmap.</div>`;
         }
     }
 
@@ -1637,26 +1788,38 @@ function injectStatusIcon() {
 
         // Insert into page
         if (isOld) {
-            const topNav = document.querySelector('.ques__nav__top');
-            if (topNav) {
-                toggleContainer.style.marginLeft = 'auto';
-                topNav.style.display = 'flex';
-                topNav.style.alignItems = 'center';
-                topNav.appendChild(toggleContainer);
+            const bottomNav = document.querySelector('.ques__nav__bottom');
+            if (bottomNav) {
+                // Keep the filter on the left, toggle on the right
+                bottomNav.style.display = 'flex';
+                bottomNav.style.alignItems = 'center';
+                bottomNav.style.justifyContent = 'space-between';
+                bottomNav.style.gap = '15px';
+                bottomNav.style.flexWrap = 'wrap';
+
+                // Ensure the left filter box doesn't push things weirdly
+                const leftBox = bottomNav.querySelector('.ques__nav__filter');
+                if (leftBox) {
+                     leftBox.style.marginRight = 'auto'; // Force right alignment for toggle
+                }
+
+                toggleContainer.style.display = 'inline-flex';
+                bottomNav.appendChild(toggleContainer);
             } else return;
         } else {
-            // Beta: insert before the table, inside the search area
+            // Beta: insert BEFORE the search container or BEFORE the table
             const searchContainer = document.querySelector('.search-container');
             const problemContainer = document.querySelector('.problem-container');
             if (searchContainer) {
-                // Place next to the search box
-                searchContainer.style.display = 'flex';
-                searchContainer.style.alignItems = 'center';
-                searchContainer.style.gap = '12px';
-                searchContainer.appendChild(toggleContainer);
+                // Place it JUST BEFORE the search container in the DOM
+                searchContainer.parentNode.insertBefore(toggleContainer, searchContainer);
+                toggleContainer.style.marginBottom = '10px';
+                toggleContainer.style.width = '100%';
+                toggleContainer.style.justifyContent = 'flex-end';
             } else if (problemContainer) {
-                // Fallback: before the problem container
                 problemContainer.parentNode.insertBefore(toggleContainer, problemContainer);
+                toggleContainer.style.marginBottom = '10px';
+                toggleContainer.style.justifyContent = 'flex-end';
             } else return;
         }
 
@@ -1943,10 +2106,10 @@ function injectStatusIcon() {
 
             const toast = document.createElement('div');
             toast.className = 'cptit-feature-toast';
-            
+
             const isBeta = window.location.href.includes('/beta');
             const historyUrl = isBeta ? '/beta/history' : '/student/history';
-            
+
             toast.innerHTML = `
                 <div class="cptit-feature-toast-content">
                     <span class="cptit-feature-toast-icon">📊</span>
@@ -1981,7 +2144,7 @@ function injectStatusIcon() {
         if (document.querySelector('.cptit-new-badge')) return;
 
         const isBeta = window.location.href.includes('/beta');
-        
+
         if (isBeta) {
             const navItems = document.querySelectorAll('.nav-item');
             for (const item of navItems) {
@@ -2026,8 +2189,9 @@ function injectStatusIcon() {
 
     // --- Tooltip Enhancement: title → data-tooltip ---
     function convertTitlesToTooltips() {
+        const modKey = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
         document.querySelectorAll('.title-action-btn[title], .editor-icon-btn[title], .cm-theme-toggle[title]').forEach(btn => {
-            btn.dataset.tooltip = btn.title;
+            btn.dataset.tooltip = btn.title.replace(/\$mod/g, modKey);
             btn.removeAttribute('title');
         });
     }
@@ -2046,6 +2210,10 @@ function injectStatusIcon() {
 
     // Hide solved problems toggle (original site - direct load)
     initHideSolvedToggle();
+    saveProblemListSequence();
+
+    // Streak badge on homepage
+    initStreakBadge();
 
     // Heatmap feature promotion (toast + badge)
     notifyHeatmapFeature();
@@ -2079,11 +2247,13 @@ function injectStatusIcon() {
                     checkNavigationChange();
                     initBetaSite();
                 }
-                
+
                 // These need to run on ALL Beta pages, not just /beta/problems/
                 if (isBeta) {
-                    // SPA: try to inject hide-solved toggle on problem list
+                    // SPA: try to inject hide-solved toggle and streak badge on problem list
                     initHideSolvedToggle();
+                    initStreakBadge();
+                    saveProblemListSequence();
 
                     if (isHistoryPage()) {
                         // User is on history tab: render heatmap, remove badge, mark seen
