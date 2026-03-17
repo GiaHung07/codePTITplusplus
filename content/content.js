@@ -2256,7 +2256,6 @@
                     // SPA: try to inject hide-solved toggle and streak badge on problem list
                     initHideSolvedToggle();
                     initStreakBadge();
-                    saveProblemListSequence();
 
                     if (isHistoryPage()) {
                         // User is on history tab: render heatmap, remove badge, mark seen
