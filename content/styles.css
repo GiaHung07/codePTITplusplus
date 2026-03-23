@@ -558,6 +558,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     margin-bottom: 8px;
 }
 
@@ -1029,6 +1030,21 @@
     color: inherit;
 }
 
+/* Login prompt badge */
+.cptit-streak-login {
+    background: rgba(88, 166, 255, 0.08);
+    border: 1px dashed rgba(88, 166, 255, 0.4);
+    color: #58a6ff;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.cptit-streak-login:hover {
+    background: rgba(88, 166, 255, 0.15);
+    border-color: #58a6ff;
+    transform: translateY(-1px);
+}
+
 @keyframes cptit-native-pulse {
     0% { box-shadow: 0 0 0 0 rgba(167, 69, 60, 0.4); }
     70% { box-shadow: 0 0 0 4px rgba(167, 69, 60, 0); }
@@ -1043,4 +1059,31 @@
 @keyframes cptit-streak-flame {
     0%, 100% { transform: scale(1) translateY(0); }
     50% { transform: scale(1.15) translateY(-1px); }
+}
+
+/* Streak reminder ("code today") */
+.cptit-streak-reminder {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #d97706;
+    animation: cptit-reminder-fade 2s ease-in-out infinite alternate;
+}
+
+@keyframes cptit-reminder-fade {
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Homepage badge reminder */
+.cptit-streak-badge-reminder {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #d97706;
+    animation: cptit-reminder-fade 2s ease-in-out infinite alternate;
+    white-space: nowrap;
 }

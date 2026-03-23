@@ -1275,6 +1275,15 @@
 
     // --- GitHub Contribution Graph (Heatmap) ---
 
+    function getApiAuthOptions() {
+        const headers = { 'Accept': 'application/json, text/plain, */*' };
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        return { headers, credentials: 'include' };
+    }
+
     async function fetchUsername() {
         const urlOptions = ['/user/profile', '/profile'];
         for (const url of urlOptions) {
@@ -1313,11 +1322,7 @@
         if (betaProfile && betaProfile.src.includes('?name=')) {
             // Beta doesn't cleanly expose username, but maybe we can just get it globally if the user is in beta
             try {
-                const token = localStorage.getItem('access_token');
-                const headers = { 'Accept': 'application/json, text/plain, */*' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                const req = await fetch('/api/user/info', { headers });
+                const req = await fetch('/api/user/info', getApiAuthOptions());
                 if (req.ok) {
                     const json = await req.json();
                     if (json && json.data && json.data.username) return json.data.username;
@@ -1332,11 +1337,10 @@
     async function fetchAllSubmissions(username) {
         if (!username) return [];
         try {
-            const token = localStorage.getItem('access_token');
-            const headers = { 'Accept': 'application/json, text/plain, */*' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const fetchOpts = getApiAuthOptions();
 
-            const firstPageRes = await fetch(`/api/solutions?username=${username}&page=1`, { headers });
+            const firstPageRes = await fetch(`/api/solutions?username=${username}&page=1`, fetchOpts);
+            if (firstPageRes.status === 401) return { error: 'unauthorized' };
             if (!firstPageRes.ok) return [];
             const firstPageData = await firstPageRes.json();
 
@@ -1347,7 +1351,7 @@
                 const promises = [];
                 for (let i = 2; i <= lastPage; i++) {
                     promises.push(
-                        fetch(`/api/solutions?username=${username}&page=${i}`, { headers })
+                        fetch(`/api/solutions?username=${username}&page=${i}`, fetchOpts)
                             .then(res => res.json())
                             .catch(() => ({ data: [] }))
                     );
@@ -1472,20 +1476,35 @@
 
         // Fetch submissions and calculate streak
         const subs = await fetchAllSubmissions(username);
-        const processed = processSubmissions(subs);
-        const streak = calcStreak(processed);
 
         // Build badge
         const badge = document.createElement('div');
         badge.id = 'cptit-homepage-streak';
         badge.className = 'cptit-homepage-streak';
 
-        const flameSvg = '<svg class="streak-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
-
-        if (streak > 0) {
-            badge.innerHTML = `<span class="cptit-streak-badge active-streak">${flameSvg} <span class="streak-text">${streak} ngày liên tiếp</span></span>`;
+        if (subs && subs.error === 'unauthorized') {
+            badge.innerHTML = `<span class="cptit-streak-badge cptit-streak-login"><a href="https://code.ptit.edu.vn/beta" target="_blank" style="color: #58a6ff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                <span>Đăng nhập Beta để xem streak</span>
+            </a></span>`;
         } else {
-            badge.innerHTML = `<span class="cptit-streak-badge cptit-streak-zero"><span class="streak-text">Hãy bắt đầu streak hôm nay!</span></span>`;
+            const processed = processSubmissions(subs);
+            const streak = calcStreak(processed);
+
+            const todayStr = (() => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            })();
+            const codedToday = (processed[todayStr] || 0) > 0;
+
+            const flameSvg = '<svg class="streak-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+
+            if (streak > 0) {
+                const reminderHTML = !codedToday ? `<span class="cptit-streak-badge-reminder">Hôm nay bạn chưa code — hãy nộp bài để giữ streak!</span>` : '';
+                badge.innerHTML = `<span class="cptit-streak-badge active-streak">${flameSvg} <span class="streak-text">${streak} ngày liên tiếp</span></span>${reminderHTML}`;
+            } else {
+                badge.innerHTML = `<span class="cptit-streak-badge cptit-streak-zero"><span class="streak-text">Hãy bắt đầu streak hôm nay!</span></span>`;
+            }
         }
 
         // Inject into page
@@ -1557,9 +1576,19 @@
 
         const flameSvg = '<svg class="streak-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
         
+        // Check if user has coded today
+        const todayStr = (() => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        })();
+        const codedToday = (submissionsData[todayStr] || 0) > 0;
+
         let streakHTML = '';
         if (currentStreak > 0) {
             streakHTML = `<span class="cptit-streak-badge active-streak">${flameSvg} <span class="streak-text">${currentStreak} ngày liên tiếp</span></span>`;
+            if (!codedToday) {
+                streakHTML += `<span class="cptit-streak-reminder">Hôm nay bạn chưa code — hãy nộp bài để giữ streak!</span>`;
+            }
         } else {
             streakHTML = `<span class="cptit-streak-badge cptit-streak-zero"><span class="streak-text">Hãy bắt đầu streak hôm nay!</span></span>`;
         }
@@ -1747,6 +1776,17 @@
         if (username) {
             console.log('[cPTIT++] Found username:', username);
             const subs = await fetchAllSubmissions(username);
+            if (subs && subs.error === 'unauthorized') {
+                container.innerHTML = `
+                    <div class="cptit-heatmap-loading" style="color: #e8a735; text-align: center; line-height: 1.6">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px">
+                            <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        Vui lòng <a href="https://code.ptit.edu.vn/beta" target="_blank" style="color: #58a6ff; text-decoration: underline">đăng nhập trang Beta</a> để xem Heatmap.
+                    </div>
+                `;
+                return;
+            }
             const processed = processSubmissions(subs);
             renderHeatmap(processed, container);
         } else {
